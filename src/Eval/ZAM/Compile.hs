@@ -99,7 +99,11 @@ compile (IfExpr e1 e2 e3) = do
 type Binds = [(Name, ZAMValue)]
 
 runZAM :: VarList -> Binds -> Expr -> Check ZAMValue
+runZAM [] binds e = do
+  let (xs,vs) = unzip binds
+  code <- runReaderT (compile e) xs
+  return (transition (code, [], vs))
 runZAM vl binds e = do
   let (xs,vs) = unzip binds
-  code <- runReaderT (compile e) (xs ++ vl)
-  return (transition (code, [], vs))
+  code <- runReaderT (compile e) (vl ++ xs)
+  return $ transition ([Closure (code ++ [Return])], [], vs)

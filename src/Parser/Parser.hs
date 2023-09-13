@@ -119,7 +119,7 @@ parseStmt str = checkParse stmt "statement" str
 
 command :: Parser Command
 command = try (ComEvalStmt <$> stmt)
-  <|> ComEvalFile <$> (string ":l" >> manyTill anyChar space)
+  <|> ComEvalFile <$> (symbol ":l" >> manyTill anyChar space)
   <|> (string "quit" >> return Quit)
 
 parseCommand :: String -> Check Command

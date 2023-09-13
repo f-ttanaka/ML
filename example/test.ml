@@ -1,10 +1,10 @@
-let rec fact n = if 0 < n then n * (fact (n - 1)) else 1 ; 
+let rec fact n = if n == 0 then 1 else n * (fact (n - 1)) ; 
 fact 6;
 
 let rec even n =
-  if n < 1 then true else odd (n - 1)
+  if n == 0 then true else odd (n - 1)
 and odd n =
-  if n < 1 then false else even (n - 1);
+  if n == 0 then false else even (n - 1);
 
 even 6 ;
 even 0 ;

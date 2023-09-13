@@ -32,8 +32,7 @@ evalStmt (LetStmt bs) = do
         let binds' = binds ++ zip xs vs
             tEnv' = bindVars bs' tEnv
             output = unlines [x ++ " : " ++ show t | (x,t) <- bs']
-            output' = unlines [x ++ " = " ++ show v | (x,v) <- zip xs vs]
-        in put (binds', tEnv') >> lift (putStr $ output ++ output')
+        in put (binds', tEnv') >> lift (putStr output)
 evalStmt (LetRecStmt bs) = do
   (binds,tEnv) <- get
   case runInferRecBinds tEnv bs of
@@ -44,7 +43,7 @@ evalStmt (LetRecStmt bs) = do
       case mapM (\(_,x,e) -> runZAM (x:fs) binds e) bs of
         Left err -> lift (print err)
         Right vs ->
-          let binds' = zip fs vs ++ binds
+          let binds' = binds ++ zip fs vs
           in put (binds', bindVars bs' tEnv) >> lift (putStr output)
 
 readEvalFile :: FilePath -> REPL ()
