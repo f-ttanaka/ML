@@ -4,9 +4,14 @@ fact 6;
 let rec even n =
   if n == 0 then true else odd (n - 1)
 and odd n =
+  if n == 0 then false else even (n - 1) in odd 14;
+
+let rec even n =
+  if n == 0 then true else odd (n - 1)
+and odd n =
   if n == 0 then false else even (n - 1);
 
-even 6 ;
+even 2 ;
 even 0 ;
 odd 11 ;
 odd 14 ;

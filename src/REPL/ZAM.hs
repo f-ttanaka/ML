@@ -11,53 +11,69 @@ import           REPL.Prompt
 import           Syntax
 import           Typing.Infer
 
-type REPL a = StateT (Binds, TEnv) IO ()
+type REPL a = StateT (Assign, TEnv) IO ()
 
-evalStmt :: Stmt -> REPL ()
-evalStmt (ExprStmt ex) = do
-  (binds,tEnv) <- get
+checkStmt :: Stmt -> REPL ()
+checkStmt (ExprStmt ex) = do
+  (_,tEnv) <- get
   case runInfer tEnv ex of
     Left err -> lift (print err)
-    _        -> case runZAM [] binds ex of
-      Left err  -> lift (print err)
-      Right res -> lift (putStrLn $ show ex ++ " = " ++ show res)
-evalStmt (LetStmt bs) = do
-  (binds, tEnv) <- get
-  let (xs,es) = unzip bs
-  case runInferBinds tEnv bs of
+    _        -> return ()
+checkStmt (LetStmt binds) = do
+  (assign, tEnv) <- get
+  case runInferBinds tEnv binds of
     Left err -> lift (print err)
-    Right bs' -> case mapM (runZAM [] binds) es of
-      Left err -> lift (print err)
-      Right vs ->
-        let binds' = binds ++ zip xs vs
-            tEnv' = bindVars bs' tEnv
-            output = unlines [x ++ " : " ++ show t | (x,t) <- bs']
-        in put (binds', tEnv') >> lift (putStr output)
-evalStmt (LetRecStmt bs) = do
-  (binds,tEnv) <- get
-  case runInferRecBinds tEnv bs of
+    Right bs' ->
+      let tEnv' = bindVars bs' tEnv
+          output = unlines [x ++ " : " ++ show t | (x,t) <- bs']
+      in put (assign, tEnv') >> lift (putStr output)
+checkStmt (LetRecStmt binds) = do
+  (assign,tEnv) <- get
+  case runInferRecBinds tEnv binds of
     Left err -> lift (print err)
-    Right bs' -> do
+    Right bs' ->
       let output = unlines [f ++ " : " ++ show t | (f,t) <- bs']
-          (fs,_,_) = unzip3 bs
-      case mapM (\(_,x,e) -> runZAM (x:fs) binds e) bs of
-        Left err -> lift (print err)
-        Right vs ->
-          let binds' = binds ++ zip fs vs
-          in put (binds', bindVars bs' tEnv) >> lift (putStr output)
+      in put (assign, bindVars bs' tEnv) >> lift (putStr output)
+
+-- evalStmt :: Stmt -> REPL ()
+-- evalStmt (ExprStmt ex) = do
+--   (binds,_) <- get
+--   case runZAM [] binds ex of
+--       Left err  -> lift (print err)
+--       Right res -> lift (putStrLn $ show ex ++ " = " ++ show res)
+-- evalStmt (LetStmt bs) = do
+--   (binds, tEnv) <- get
+--   let (xs,es) = unzip bs
+--   case mapM (runZAM [] binds) es of
+--     Left err -> lift (print err)
+--     Right vs -> put (binds ++ zip xs vs, tEnv)
+-- evalStmt (LetRecStmt bs) = do
+--   (binds,tEnv) <- get
+--   let (fs,_,_) = unzip3 bs
+--   case mapM (\(_,x,e) -> runZAM (x:fs) binds e) bs of
+--     Left err -> lift (print err)
+--     Right vs -> put (binds ++ zip fs vs, tEnv)
+
+evalStmt :: Stmt -> REPL ()
+evalStmt stmt = do
+  (assign,tEnv) <- get
+  case execZAM assign stmt of
+    Left err           -> lift (print err)
+    Right (RVal rv)    -> lift (print rv)
+    Right (RAssign ra) -> put (ra ++ assign, tEnv)
 
 readEvalFile :: FilePath -> REPL ()
 readEvalFile fp = do
   str <- lift (readFile fp)
   case parseFile str of
     Left err   -> lift (print err)
-    Right stms -> mapM_ evalStmt stms
+    Right stms -> mapM_ (\stm -> checkStmt stm >> evalStmt stm) stms
 
 loop :: REPL ()
 loop = do
   input <- lift (readPrompt "zam>> ")
   case parseCommand input of
-    Right (ComEvalStmt stm) -> evalStmt stm >> loop
+    Right (ComEvalStmt stm) -> checkStmt stm >> evalStmt stm >> loop
     Right (ComEvalFile fp)  -> readEvalFile fp >> loop
     Right Quit              -> return ()
     Left err                -> lift (print err) >> loop
