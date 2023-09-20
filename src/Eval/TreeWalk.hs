@@ -83,6 +83,3 @@ eval (LetRecExpr bs bod) = do
 
 runEval :: VEnv -> Expr -> Check Val
 runEval env ex = runReaderT (eval ex) env
-
-testEval :: Expr -> Check Val
-testEval ex = runEval mempty ex

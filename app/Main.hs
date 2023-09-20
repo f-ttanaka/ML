@@ -4,5 +4,5 @@ import qualified REPL.REPL as R
 import qualified REPL.ZAM  as ZAM
 
 main :: IO ()
-main = ZAM.runREPL
+main = R.runREPL
 

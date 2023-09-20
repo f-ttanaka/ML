@@ -35,25 +35,6 @@ checkStmt (LetRecStmt binds) = do
       let output = unlines [f ++ " : " ++ show t | (f,t) <- bs']
       in put (assign, bindVars bs' tEnv) >> lift (putStr output)
 
--- evalStmt :: Stmt -> REPL ()
--- evalStmt (ExprStmt ex) = do
---   (binds,_) <- get
---   case runZAM [] binds ex of
---       Left err  -> lift (print err)
---       Right res -> lift (putStrLn $ show ex ++ " = " ++ show res)
--- evalStmt (LetStmt bs) = do
---   (binds, tEnv) <- get
---   let (xs,es) = unzip bs
---   case mapM (runZAM [] binds) es of
---     Left err -> lift (print err)
---     Right vs -> put (binds ++ zip xs vs, tEnv)
--- evalStmt (LetRecStmt bs) = do
---   (binds,tEnv) <- get
---   let (fs,_,_) = unzip3 bs
---   case mapM (\(_,x,e) -> runZAM (x:fs) binds e) bs of
---     Left err -> lift (print err)
---     Right vs -> put (binds ++ zip fs vs, tEnv)
-
 evalStmt :: Stmt -> REPL ()
 evalStmt stmt = do
   (assign,tEnv) <- get
